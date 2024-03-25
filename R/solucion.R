@@ -1,13 +1,16 @@
-#' Definición de la clase Solucion
+#' @title Definition of the Solucion class
 #'
-#' @param num Número de la solución
-#' @param data Conjunto de datos
-#' @param costes Vector de costes
-#' @param inputs Nombres de las variables de entrada
-#' @param output Nombre de la variable de salida
-#' @param num_features Número de características
+#' @description
+#'   Definition of the Solucion class
 #'
-#' @return Objeto de clase Solucion
+#' @param num Number of the solution
+#' @param data Data set
+#' @param costes Cost vector
+#' @param inputs Names of input variables
+#' @param output Name of the output variable
+#' @param num_features Number of features
+#'
+#' @return Solucion class object
 #' @export
 Solucion <- function(num, data, costes, inputs, output, num_features) {
   # Definir variables de instancia
@@ -33,11 +36,14 @@ Solucion <- function(num, data, costes, inputs, output, num_features) {
   return(solucion)
 }
 
-#' Método para convertir la solución a un diccionario
+#' @title Method to convert the solution to a dictionary
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to convert the solution to a dictionary
 #'
-#' @return Lista con la información de la solución
+#' @param solucion Solucion class object
+#'
+#' @return List with the information of the solution
 #' @export
 to_dict <- function(solucion) {
   return(list(
@@ -54,12 +60,15 @@ to_dict <- function(solucion) {
   ))
 }
 
-#' Método para obtener un vector de clase aleatorio
+#' @title Method to obtain a random class vector
 #'
-#' @param solucion Objeto de clase Solucion
-#' @param clase Clase para la que se desea obtener un vector
+#' @description
+#'   Method to obtain a random class vector
 #'
-#' @return Índice del vector de clase aleatorio
+#' @param solucion Solucion class object
+#' @param clase Class for which to obtain a vector
+#'
+#' @return Index of the random class vector
 #' @export
 obtener_vector_clase <- function(solucion, clase) {
   vectores_clase <- which(solucion$data[[solucion$output]] == clase)
@@ -67,21 +76,24 @@ obtener_vector_clase <- function(solucion, clase) {
   return(vector)
 }
 
-#' Método para generar una solución aleatoria
+#' @title Method to generate a random solution
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to generate a random solution
 #'
-#' @return Objeto de clase Solucion con una solución aleatoria generada
+#' @param solucion Solucion class object
+#'
+#' @return Solucion class object with a randomly generated solution
 #' @export
 generar_solucion_aleatoria <- function(solucion) {
-  # Seleccionamos dos puntos de cada clase
+  # Select two points from each class
   clases <- unique(solucion$data[[solucion$output]])
   for (clase in clases) {
     vector <- obtener_vector_clase(solucion, clase)
     solucion$vectors <- c(solucion$vectors, vector)
   }
 
-  # Seleccionamos aleatoriamente p características
+  # Randomly select p features
   if (solucion$num_features == solucion$num_dim) {
     solucion$features <- solucion$inputs
   } else {
@@ -94,21 +106,24 @@ generar_solucion_aleatoria <- function(solucion) {
     solucion$features <- sort(solucion$features)
   }
 
-  # Calcular las coordenadas del plano
+  # Calculate the coordinates of the plane
   solucion$plano_coord <- runif(solucion$num_features, -1, 1)
 
-  # Seleccionar los datos correspondientes a los vectores
+  # Select the data corresponding to the vectors
   solucion$data_sol <- solucion$data[solucion$vectors, , drop = FALSE]
   solucion$data_sol <- solucion$data_sol[, solucion$features]
 
   return(solucion)
 }
 
-#' Método para construir los planos
+#' @title Method to construct planes
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to construct planes
 #'
-#' @return Objeto de clase Solucion con los planos construidos
+#' @param solucion Solucion class object
+#'
+#' @return Solucion class object with constructed planes
 #' @export
 construir_planos <- function(solucion) {
   data_sol <- solucion$data[solucion$vectors, , drop = FALSE]
@@ -122,18 +137,21 @@ construir_planos <- function(solucion) {
     }
     plano_termino_b <- c(plano_termino_b, -indep)
   }
-  # Calcular el término de sesgo como la suma de todos los términos independientes dividida por 2
+  # Calculate the bias term as the sum of all independent terms divided by 2
   sesgo <- sum(plano_termino_b) / 2
   solucion$plano_termino_b <- c(plano_termino_b, sesgo)
 
-  return(solucion)  # Devolver solucion con plano_termino_b actualizado
+  return(solucion)  # Return solution with updated plano_termino_b
 }
 
-#' Método para calcular el objetivo de distancia
+#' @title Method to calculate the distance objective
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to calculate the distance objective
 #'
-#' @return Objeto de clase Solucion con el objetivo de distancia calculado
+#' @param solucion Solucion class object
+#'
+#' @return Solucion class object with the distance objective calculated
 #' @export
 calcular_objetivo_distancia <- function(solucion) {
   denominador <- 0
@@ -148,14 +166,17 @@ calcular_objetivo_distancia <- function(solucion) {
   } else {
     solucion$obj_distancia <- -1
   }
-  return(solucion)  # Devolver solucion con obj_distancia actualizado
+  return(solucion)  # Return solution with updated obj_distancia
 }
 
-#' Método para calcular el objetivo de epsilon
+#' @title Method to calculate the epsilon objective
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to calculate the epsilon objective
 #'
-#' @return Objeto de clase Solucion con el objetivo de epsilon calculado
+#' @param solucion Solucion class object
+#'
+#' @return Solucion class object with the epsilon objective calculated
 #' @export
 calcular_objetivo_epsilon <- function(solucion) {
   solucion$mc_pos <- 0
@@ -177,31 +198,35 @@ calcular_objetivo_epsilon <- function(solucion) {
   return(solucion)  # Devolver solucion con obj_epsilon actualizado
 }
 
-#' Método para evaluar la solución
+#' @title Method to evaluate the solution
 #'
-#' @param solucion Objeto de clase Solucion
+#' @description
+#'   Method to evaluate the solution
 #'
-#' @return Objeto de clase Solucion con la evaluación realizada
+#' @param solucion Solucion class object
+#'
+#' @return Solucion class object with the evaluation performed
 #' @export
 evaluar_solucion <- function(solucion) {
   if (sum(solucion$plano_coord) == 0) {
-    print("La suma de las coordenadas del plano es 0. La solución no es válida.")
-    return(0) # Si las coordenadas del plano suman 0, la solución no es válida
+    print("The sum of the plane coordinates is 0. The solution is not valid.")
+    return(0) # If the sum of the plane coordinates is 0, the solution is not valid
   } else {
-    print("Plano construido correctamente.")
-    solucion <- construir_planos(solucion)  # Actualizar solucion con plano_termino_b
+    print("Plane constructed successfully.")
+    solucion <- construir_planos(solucion)  # Update solution with plano_termino_b
 
-    print("Objetivo de distancia calculado.")
-    solucion <- calcular_objetivo_distancia(solucion)  # Actualizar solucion con obj_distancia
+    print("Distance objective calculated.")
+    solucion <- calcular_objetivo_distancia(solucion)  # Update solution with obj_distancia
 
-    print("Objetivo de epsilon calculado.")
-    solucion <- calcular_objetivo_epsilon(solucion)  # Actualizar solucion con obj_epsilon
+    print("Epsilon objective calculated.")
+    solucion <- calcular_objetivo_epsilon(solucion)  # Update solution with obj_epsilon
 
     # calcular_objetivo_costes(solucion)
     # calcular_puntos_bien_clasif(solucion)
     return(solucion)
   }
 }
+
 
 # # Método para calcular los puntos bien clasificados
 # calcular_puntos_bien_clasif <- function(solucion) {

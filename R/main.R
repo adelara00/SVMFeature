@@ -1,10 +1,12 @@
 library(readr)
+# Cargar la definición de la clase Solucion
+source("R/solucion.R")
+source("R/poblacion.R")
 
-setwd("C:/Users/Ángel de Lara/Desktop/TFG")
-
-#' Función principal
+#' @title Main Function
 #'
-#' Esta función ejecuta el flujo principal del programa.
+#' @description
+#'   This function executes the main flow of the program.
 #'
 #' @import readr
 #' @importFrom Solucion generar_solucion_aleatoria evaluar_solucion
@@ -12,8 +14,13 @@ setwd("C:/Users/Ángel de Lara/Desktop/TFG")
 #'
 #' @export
 main <- function() {
-  # Cargar los datos del archivo
-  datos <- read.table("prueba.txt", sep = ";", header = TRUE)
+  # Obtener la ruta completa al archivo dentro de la carpeta data
+  #archivo <- system.file("data", "prueba.txt", package = "SVMFeature")
+
+  archivo <- "data/prueba.txt"  # Ruta relativa al directorio de trabajo actual
+
+  # Leer los datos desde el archivo
+  datos <- read.table(archivo, sep = ";", header = TRUE)
 
   # Guardar la columna de salida
   tu_output <- colnames(datos)[1]
@@ -53,8 +60,6 @@ main <- function() {
 if (interactive()) {
   main()
 }
-
-
 
 # # Extracción de costes y datos
 # costes <- data[1, -(1:2)]  # La primera fila contiene los costes

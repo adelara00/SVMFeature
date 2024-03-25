@@ -1,16 +1,17 @@
-#' Clase Poblacion
+#' @title Class Population
 #'
-#' Esta función define la clase Poblacion con sus atributos y métodos.
+#' @description
+#'   This function defines the Population class with its attributes and methods.
 #'
-#' @param data Conjunto de datos
-#' @param costes Costes asociados
-#' @param tam_pob Tamaño de la población
-#' @param inputs Variables de entrada
-#' @param output Variable de salida
-#' @param num_features Número de características
-#' @param clones Número de clones (default: 0)
+#' @param data Dataset
+#' @param costs Associated costs
+#' @param population_size Population size
+#' @param inputs Input variables
+#' @param output Output variable
+#' @param num_features Number of features
+#' @param clones Number of clones (default: 0)
 #'
-#' @return Objeto de clase Poblacion
+#' @return Population class object
 #'
 #' @export
 Poblacion <- function(data, costes, tam_pob, inputs, output, num_features, clones = 0) {
@@ -32,22 +33,23 @@ Poblacion <- function(data, costes, tam_pob, inputs, output, num_features, clone
   )
 }
 
-#' Generar población inicial
+#' @title Generate initial population
 #'
-#' Esta función genera la población inicial.
+#' @description
+#'   This function generates the initial population.
 #'
-#' @param poblacion Objeto de clase Poblacion
+#' @param poblacion Population class object
 #'
-#' @return Objeto de clase Poblacion actualizado con la población inicial generada
+#' @return Population class object updated with the generated initial population
 #'
 #' @export
 generar_poblacion_inicial <- function(poblacion) {
-  cat("Generando poblacion", "\n")
+  cat("Generating population", "\n")
 
   num_sol <- 1
 
   while (length(poblacion$lista_soluciones) < poblacion$tam_pob) {
-    cat("Número de soluciones generadas hasta ahora:", length(poblacion$lista_soluciones), "\n")
+    cat("Number of solutions generated so far:", length(poblacion$lista_soluciones), "\n")
 
     sol <- Solucion(num_sol, poblacion$data, poblacion$costes, poblacion$inputs, poblacion$output, poblacion$num_features)
     sol_alt <- generar_solucion_aleatoria(sol)
@@ -55,7 +57,7 @@ generar_poblacion_inicial <- function(poblacion) {
     num_sol <- num_sol + 1
   }
 
-  cat("Población creada\n")
+  cat("Population created\n")
 
   return(poblacion)  # Devolver la población actualizada
 }
@@ -86,18 +88,19 @@ generar_poblacion_inicial <- function(poblacion) {
 #   }
 # }
 
-#' Imprimir población
+#' @title Print population
 #'
-#' Esta función imprime la población.
+#' @description
+#'   This function prints the population.
 #'
-#' @param poblacion Objeto de clase Poblacion
+#' @param poblacion Population class object
 #'
-#' @return Imprime la población en la consola
+#' @return Prints the population in the console
 #'
 #' @export
 imprimir_poblacion <- function(poblacion) {
   if (length(poblacion$lista_soluciones) == 0) {
-    cat("La población está vacía. Primero genera la población inicial.\n")
+    cat("The population is empty. First generate the initial population.\n")
     return(NULL)
   }
 
@@ -124,27 +127,27 @@ imprimir_poblacion <- function(poblacion) {
     df_soluciones[i, "PLANO_B"] <- paste(sol_dict$PLANO_B, collapse = ",")
     df_soluciones[i, "FEATURES"] <- paste(unlist(sol_dict$FEATURES), collapse = ",")
 
-    # Verificar si sol_dict$DIST es NULL antes de asignarlo
+    # Check if sol_dict$DIST is NULL before assigning it
     if (!is.null(sol_dict$DIST)) {
       df_soluciones[i, "DIST"] <- sol_dict$DIST
     }
 
-    # Verificar si sol_dict$EPS es NULL antes de asignarlo
+    # Check if sol_dict$EPS is NULL before assigning it
     if (!is.null(sol_dict$EPS)) {
       df_soluciones[i, "EPS"] <- sol_dict$EPS
     }
 
-    # Verificar si sol_dict$COSTE es NULL antes de asignarlo
+    # Check if sol_dict$COSTE is NULL before assigning it
     if (!is.null(sol_dict$COSTE)) {
       df_soluciones[i, "COSTE"] <- sol_dict$COSTE
     }
 
-    # Verificar si sol_dict$`MC+` es NULL o de longitud cero antes de asignarlo
+    # Check if sol_dict$`MC+` is NULL or of length zero before assigning it
     if (!is.null(sol_dict$`MC+`) && length(sol_dict$`MC+`) > 0) {
       df_soluciones[i, "MC+"] <- sol_dict$`MC+`
     }
 
-    # Verificar si sol_dict$`MC-` es NULL o de longitud cero antes de asignarlo
+    # Check if sol_dict$`MC-` is NULL or of length zero before assigning it
     if (!is.null(sol_dict$`MC-`) && length(sol_dict$`MC-`) > 0) {
       df_soluciones[i, "MC-"] <- sol_dict$`MC-`
     }
@@ -153,14 +156,15 @@ imprimir_poblacion <- function(poblacion) {
   print(df_soluciones)
 }
 
-#' Comparar igualdad de soluciones
+#' @title Compare equality of solutions
 #'
-#' Esta función compara si dos soluciones son iguales.
+#' @description
+#'   This function compares if two solutions are equal.
 #'
-#' @param solucion Primera solución
-#' @param other Segunda solución
+#' @param solucion First solution
+#' @param other Second solution
 #'
-#' @return TRUE si las soluciones son iguales, FALSE de lo contrario
+#' @return TRUE if the solutions are equal, FALSE otherwise
 #'
 #' @export
 equal <- function(solucion, other) {
@@ -173,14 +177,15 @@ equal <- function(solucion, other) {
   }
 }
 
-#' Comprobar clones en la población
+#' @title Check clones in the population
 #'
-#' Esta función comprueba si hay clones en la población.
+#' @description
+#'   This function checks if there are clones in the population.
 #'
-#' @param solucion_eva Solución a evaluar
-#' @param lista_soluciones Lista de soluciones
+#' @param solucion_eva Solution to evaluate
+#' @param lista_soluciones List of solutions
 #'
-#' @return TRUE si hay clones, FALSE de lo contrario
+#' @return TRUE if there are clones, FALSE otherwise
 #'
 #' @export
 comprobar_clones <- function(solucion_eva, lista_soluciones) {
@@ -194,19 +199,21 @@ comprobar_clones <- function(solucion_eva, lista_soluciones) {
   return(clon)
 }
 
-#' Algoritmo de clasificación no dominada rápida
+#' @title Fast Non-Dominated Sorting Algorithm
 #'
-#' Esta función implementa el algoritmo de clasificación no dominada rápida.
+#' @description
+#'   This function implements the fast non-dominated sorting algorithm.
 #'
-#' @param poblacion Objeto de clase Poblacion
+#' @param poblacion Population class object
 #'
-#' @return Número de frentes encontrados
+#' @return Number of fronts found
 #'
-#' @exportfast_non_dominated_sort <- function(poblacion) {
+#' @export
+fast_non_dominated_sort <- function(poblacion) {
   tam_pob <- length(poblacion$lista_soluciones)
   num_sol_me_dom_aux <- rep(0, 2 * tam_pob)
 
-  cat("\n\nRealizando FNDS desde 0 hasta", tam_pob, "......")
+  cat("\n\nPerforming FNDS from 0 to", tam_pob, "......")
 
   num_sol_front <- rep(0, tam_pob)
   num_fronts <- 0
@@ -224,7 +231,7 @@ comprobar_clones <- function(solucion_eva, lista_soluciones) {
       if (p != q) {
         dom <- domina(poblacion$lista_soluciones[[p]], poblacion$lista_soluciones[[q]])
 
-        if (dom == 1) { # si p domina a q
+        if (dom == 1) { # if p dominates q
           poblacion$lista_soluciones[[p]]$sol_domina[poblacion$lista_soluciones[[p]]$num_sol_domina + 1] <- q
           poblacion$lista_soluciones[[p]]$num_sol_domina <- poblacion$lista_soluciones[[p]]$num_sol_domina + 1
         } else if (dom == 2) {
@@ -267,10 +274,9 @@ comprobar_clones <- function(solucion_eva, lista_soluciones) {
   }
 
   num_fronts <- front_cont
-  cat("\nNº fronts:", front_cont)
-  cat("\nNº SND:", num_sol_front[1])
+  cat("\nNumber of fronts:", front_cont)
+  cat("\nNumber of SND:", num_sol_front[1])
 }
-
 
 # # Esta función compara dos soluciones padres en función de varios criterios y devuelve el índice de la mejor solución.
 # # Los criterios de comparación son:
