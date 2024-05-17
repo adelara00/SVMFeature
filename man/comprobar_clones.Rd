@@ -2,18 +2,18 @@
 % Please edit documentation in R/poblacion.R
 \name{comprobar_clones}
 \alias{comprobar_clones}
-\title{Check clones in the population}
+\title{Check for Clones}
 \usage{
-comprobar_clones(solucion_eva, lista_soluciones)
+comprobar_clones(poblacion, solucion_eva)
 }
 \arguments{
-\item{solucion_eva}{Solution to evaluate}
+\item{poblacion}{Population}
 
-\item{lista_soluciones}{List of solutions}
+\item{solucion_eva}{Solution object to be evaluated for duplication}
 }
 \value{
-TRUE if there are clones, FALSE otherwise
+1 if a clone is found, otherwise 0
 }
 \description{
-This function checks if there are clones in the population.
+This function checks if a solution already exists in the solution list to avoid duplicates.
 }

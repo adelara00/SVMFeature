@@ -2,12 +2,12 @@
 % Please edit documentation in R/solucion.R
 \name{Solucion}
 \alias{Solucion}
-\title{Definition of the Solucion class}
+\title{Definition of the Solucion Class}
 \usage{
 Solucion(num, data, costes, inputs, output, num_features)
 }
 \arguments{
-\item{num}{Number of the solution}
+\item{num}{Solution number}
 
 \item{data}{Data set}
 
@@ -20,8 +20,8 @@ Solucion(num, data, costes, inputs, output, num_features)
 \item{num_features}{Number of features}
 }
 \value{
-Solucion class object
+Object of the `Solucion` class
 }
 \description{
-Definition of the Solucion class
+Defines the `Solucion` class, which represents an individual solution.
 }

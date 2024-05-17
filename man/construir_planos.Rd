@@ -2,16 +2,16 @@
 % Please edit documentation in R/solucion.R
 \name{construir_planos}
 \alias{construir_planos}
-\title{Method to construct planes}
+\title{Method to Construct Planes}
 \usage{
 construir_planos(solucion)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object containing data and features to construct planes}
 }
 \value{
 Solucion class object with constructed planes
 }
 \description{
-Method to construct planes
+Method to construct planes by calculating the coefficients based on features.
 }

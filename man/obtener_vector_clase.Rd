@@ -2,12 +2,12 @@
 % Please edit documentation in R/solucion.R
 \name{obtener_vector_clase}
 \alias{obtener_vector_clase}
-\title{Method to obtain a random class vector}
+\title{Method to Obtain a Random Class Vector}
 \usage{
 obtener_vector_clase(solucion, clase)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object containing the dataset}
 
 \item{clase}{Class for which to obtain a vector}
 }
@@ -15,5 +15,5 @@ obtener_vector_clase(solucion, clase)
 Index of the random class vector
 }
 \description{
-Method to obtain a random class vector
+Method to obtain a random class vector from the dataset.
 }

@@ -2,16 +2,16 @@
 % Please edit documentation in R/solucion.R
 \name{generar_solucion_aleatoria}
 \alias{generar_solucion_aleatoria}
-\title{Method to generate a random solution}
+\title{Method to Generate a Random Solution}
 \usage{
 generar_solucion_aleatoria(solucion)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object to modify}
 }
 \value{
 Solucion class object with a randomly generated solution
 }
 \description{
-Method to generate a random solution
+Method to generate a random solution by selecting random features and class vectors.
 }

@@ -1,16 +1,17 @@
-#' @title Definition of the Solucion class
+#' @title Definition of the Solucion Class
 #'
 #' @description
-#'   Definition of the Solucion class
+#'   Defines the `Solucion` class, which represents an individual solution.
 #'
-#' @param num Number of the solution
+#' @param num Solution number
 #' @param data Data set
 #' @param costes Cost vector
 #' @param inputs Names of input variables
 #' @param output Name of the output variable
 #' @param num_features Number of features
 #'
-#' @return Solucion class object
+#' @return Object of the `Solucion` class
+#'
 #' @export
 Solucion <- function(num, data, costes, inputs, output, num_features) {
   # Definir variables de instancia
@@ -22,19 +23,23 @@ Solucion <- function(num, data, costes, inputs, output, num_features) {
     output = output,
     num_dim = length(inputs),
     num_features = num_features,
-    data_sol = data.frame(),  # Inicializar data_sol como un dataframe vacío
+    data_sol = NULL,
     features = list(),
-    vectors = numeric(0),
-    plano_coord = numeric(num_features),  # Inicializar plano_coord como un vector numérico
-    plano_termino_b = NULL,
-    obj_coste = NULL,
-    obj_distancia = NULL,
-    obj_epsilon = NULL,
-    obj_mal_clasificados = list(mc_pos = NULL, mc_neg = NULL) # Inicializar obj_mal_clasificados como una lista
+    vectors = list(),
+    plano_coord = list(),
+    plano_termino_b = list(),
+    objetivo = numeric(2),  # Index 1 para distancia, Index 2 para epsilon
+    sol_dom_por = 0,  # Inicializar contador de dominación
+    lista_domina_a = list(),  # Lista de soluciones que esta solución domina
+    lista_dominado_por = list(),  # Lista de soluciones que dominan a esta solución
+    front = -1,
+    evaluacion_exitosa = FALSE,
+    crowding_distance = 0
   )
-
   return(solucion)
 }
+
+
 
 #' @title Method to convert the solution to a dictionary
 #'
@@ -44,436 +49,362 @@ Solucion <- function(num, data, costes, inputs, output, num_features) {
 #' @param solucion Solucion class object
 #'
 #' @return List with the information of the solution
-#' @export
 to_dict <- function(solucion) {
   return(list(
-    "SOL" = solucion$num,
-    "VECTORS" = solucion$vectors,
-    "PLANO_COOR" = solucion$plano_coord,
-    "PLANO_B" = solucion$plano_termino_b,
-    "FEATURES" = solucion$features,
-    "DIST" = solucion$obj_distancia,
-    "EPS" = solucion$obj_epsilon,
-    "COSTE" = solucion$obj_coste,
-    "MC+" = solucion$obj_mal_clasificados$mc_pos,
-    "MC-" = solucion$obj_mal_clasificados$mc_neg
+    #SOL = solucion$num,
+    VECTORS = solucion$vectors,
+    #PLANO_COOR = solucion$plano_coord,
+    #PLANO_COOR_B = solucion$plano_termino_b,
+    FEATURES = solucion$features,
+    DIST = solucion$objetivo[1],  # Distancia
+    EPS = solucion$objetivo[2],   # Epsilon
+    # COSTE = solucion$obj_coste,  # Descomentar si obj_coste es utilizado
+    # MC+ = solucion$obj_mal_clasificados$mc_pos,  # Descomentar si se utiliza
+    # MC- = solucion$obj_mal_clasificados$mc_neg,  # Descomentar si se utiliza
+    DOMINA_A = solucion$lista_domina_a,
+    DOMINADO_POR = solucion$lista_dominado_por,
+    SOL_DOM_POR = solucion$sol_dom_por,
+    FRONT = solucion$front,
+    CROW_DIST = solucion$crowding_distance
   ))
 }
 
-#' @title Method to obtain a random class vector
+
+
+#' @title Method to Obtain a Random Class Vector
 #'
 #' @description
-#'   Method to obtain a random class vector
+#'   Method to obtain a random class vector from the dataset.
 #'
-#' @param solucion Solucion class object
+#' @param solucion Solucion class object containing the dataset
 #' @param clase Class for which to obtain a vector
 #'
 #' @return Index of the random class vector
-#' @export
 obtener_vector_clase <- function(solucion, clase) {
-  vectores_clase <- which(solucion$data[[solucion$output]] == clase)
-  vector <- sample(vectores_clase, 1)
-  return(vector)
+  indices <- which(solucion$data[[solucion$output]] == clase)
+  if (length(indices) > 0) {
+    return(sample(indices, 1))
+  } else {
+    return(NA)  # NA es un valor numérico en R, que indica 'no disponible'
+  }
 }
 
-#' @title Method to generate a random solution
+
+
+#' @title Method to Generate a Random Solution
 #'
 #' @description
-#'   Method to generate a random solution
+#'   Method to generate a random solution by selecting random features and class vectors.
 #'
-#' @param solucion Solucion class object
+#' @param solucion Solucion class object to modify
 #'
 #' @return Solucion class object with a randomly generated solution
-#' @export
 generar_solucion_aleatoria <- function(solucion) {
-  # Select two points from each class
-  clases <- unique(solucion$data[[solucion$output]])
-  for (clase in clases) {
-    vector <- obtener_vector_clase(solucion, clase)
-    solucion$vectors <- c(solucion$vectors, vector)
+  # Seleccionar dos puntos de la clase A y B
+  clases <- sort(unique(solucion$data[[solucion$output]]))
+  solucion$vectors <- vector("list", length(clases))
+
+  for (i in seq_along(clases)) {
+    solucion$vectors[[i]] <- obtener_vector_clase(solucion, clases[i])
   }
 
-  # Randomly select p features
+  # Seleccionar aleatoriamente p características y p coordenadas entre [-1, 1]
   if (solucion$num_features == solucion$num_dim) {
     solucion$features <- solucion$inputs
   } else {
-    fea_posibles <- solucion$inputs
-    while (length(solucion$features) != solucion$num_features) {
-      feature <- sample(fea_posibles, 1)
-      fea_posibles <- fea_posibles[fea_posibles != feature]
-      solucion$features <- c(solucion$features, feature)
-    }
-    solucion$features <- sort(solucion$features)
+    fea_posibles <- solucion$inputs[which(solucion$inputs %in% names(solucion$data))] # Se verifica que las entradas existan como columnas
+    solucion$features <- sample(fea_posibles, solucion$num_features)
   }
 
-  # Calculate the coordinates of the plane
-  solucion$plano_coord <- runif(solucion$num_features, -1, 1)
+  # Calcular las coordenadas del plano
+  solucion$plano_coord <- runif(solucion$num_features, -1, 1) # Coordenadas aleatorias para cada característica
 
-  # Select the data corresponding to the vectors
-  solucion$data_sol <- solucion$data[solucion$vectors, , drop = FALSE]
-  solucion$data_sol <- solucion$data_sol[, solucion$features]
+  # Ajustar dataframe de solución
+  indices <- unlist(solucion$vectors)
+  if (length(indices) == 0 || length(solucion$features) == 0) {
+    return(solucion) # Retorna la solución sin modificar si no hay índices válidos o características seleccionadas
+  }
+
+  solucion$data_sol <- solucion$data[indices, solucion$features, drop = FALSE]
 
   return(solucion)
 }
 
-#' @title Method to construct planes
+
+
+#' @title Method to Construct Planes
 #'
 #' @description
-#'   Method to construct planes
+#'   Method to construct planes by calculating the coefficients based on features.
 #'
-#' @param solucion Solucion class object
+#' @param solucion Solucion class object containing data and features to construct planes
 #'
 #' @return Solucion class object with constructed planes
-#' @export
 construir_planos <- function(solucion) {
-  data_sol <- solucion$data[solucion$vectors, , drop = FALSE]
-  data_sol <- data_sol[, solucion$features]
-  plano_termino_b <- numeric(0)
+  # Preparar el dataframe data_sol seleccionando solo las filas y columnas necesarias
+  indices_validos <- unlist(solucion$vectors)
+  indices_validos <- indices_validos[indices_validos <= nrow(solucion$data) & indices_validos > 0]
 
-  for (i in 1:nrow(data_sol)) {
-    indep <- 0
-    for (j in 1:length(solucion$features)) {
-      indep <- indep + data_sol[i, j] * solucion$plano_coord[j]
-    }
-    plano_termino_b <- c(plano_termino_b, -indep)
+  if (length(indices_validos) == 0) {
+    stop("No hay índices válidos en 'vectors'.")
   }
-  # Calculate the bias term as the sum of all independent terms divided by 2
-  sesgo <- sum(plano_termino_b) / 2
-  solucion$plano_termino_b <- c(plano_termino_b, sesgo)
 
-  return(solucion)  # Return solution with updated plano_termino_b
+  # Filtrar las características para asegurarse de que están presentes en los datos
+  features_validos <- solucion$features[solucion$features %in% names(solucion$data)]
+  if (length(features_validos) == 0) {
+    stop("No hay características válidas para la selección.")
+  }
+
+  # Subseleccionar el dataframe
+  solucion$data_sol <- solucion$data[indices_validos, features_validos, drop = FALSE]
+
+  # Inicializar el vector de términos del plano
+  solucion$plano_termino_b <- numeric()
+
+  # Calcular los términos independientes de la ecuación del plano
+  for (i in seq_len(nrow(solucion$data_sol))) {
+    indep <- 0
+    for (j in seq_along(features_validos)) {
+      indep <- indep + solucion$data_sol[i, j] * solucion$plano_coord[j]
+    }
+    # Añadir el valor negativo de 'indep' al vector de términos del plano
+    solucion$plano_termino_b <- c(solucion$plano_termino_b, -indep)
+  }
+
+  # Añadir el término del plano intermedio
+  if(length(solucion$plano_termino_b) > 0) {
+    medio <- mean(solucion$plano_termino_b)
+    solucion$plano_termino_b <- c(solucion$plano_termino_b, medio)
+  } else {
+    stop("No se han calculado términos del plano, por lo que no se puede calcular el medio.")
+  }
+
+  return(solucion)
 }
 
-#' @title Method to calculate the distance objective
+
+
+#' @title Method to Calculate the Distance Objective
 #'
 #' @description
-#'   Method to calculate the distance objective
+#'   This method calculates the distance objective based on the plane equation.
 #'
-#' @param solucion Solucion class object
+#' @param solucion Solucion class object containing the plane equation
 #'
 #' @return Solucion class object with the distance objective calculated
-#' @export
 calcular_objetivo_distancia <- function(solucion) {
-  denominador <- 0
-  for (i in 1:length(solucion$features)) {
-    denominador <- denominador + solucion$plano_coord[i]^2
-  }
-  denominador <- sqrt(denominador)
+  # Inicializar el objetivo de distancia a cero
+  solucion$objetivo[[1]] <- 0
+  denominador <- sum(solucion$plano_coord^2) ^ 0.5
+  distancia <- abs(solucion$plano_termino_b[[1]] - solucion$plano_termino_b[[2]])
 
-  if (length(solucion$plano_termino_b) >= 2 & denominador != 0) {
-    distancia <- abs(solucion$plano_termino_b[1] - solucion$plano_termino_b[2])
-    solucion$obj_distancia <- distancia / denominador
+  # Calcular la distancia normalizada si el denominador no es cero
+  if (denominador != 0) {
+    solucion$objetivo[[1]] <- distancia / denominador
   } else {
-    solucion$obj_distancia <- -1
+    solucion$objetivo[[1]] <- -1  # Valor de error o indicativo de no calculable
   }
-  return(solucion)  # Return solution with updated obj_distancia
+  return(solucion)
 }
 
-#' @title Method to calculate the epsilon objective
+
+
+#' @title Method to Calculate the Epsilon Objective
 #'
 #' @description
-#'   Method to calculate the epsilon objective
+#'   This method calculates the epsilon objective by evaluating misclassified points.
 #'
-#' @param solucion Solucion class object
+#' @param solucion Solucion class object containing data and features for classification
 #'
 #' @return Solucion class object with the epsilon objective calculated
-#' @export
 calcular_objetivo_epsilon <- function(solucion) {
-  solucion$mc_pos <- 0
-  solucion$mc_neg <- 0
+  # Inicializar contadores de clasificaciones malas
+  mc_pos <- 0
+  mc_neg <- 0
+  solucion$objetivo[[2]] <- 0
 
+  # Iterar sobre todos los datos para calcular la suma de errores
   for (i in 1:nrow(solucion$data)) {
     clase <- solucion$data[i, solucion$output]
-    fx <- sum(solucion$plano_coord * solucion$data[i, solucion$features])
+    distancia <- 0
 
-    if (clase == 1) {
-      solucion$mc_pos <- solucion$mc_pos + 1
+    # Calcular la distancia lineal usando los coeficientes
+    for (indice_coor in seq_along(solucion$features)) {
+      fea <- solucion$features[[indice_coor]]
+      distancia <- distancia + solucion$plano_coord[indice_coor] * solucion$data[i, fea]
+    }
+
+    # Ajustar por el término independiente y contar errores
+    if (clase == -1) {
+      distancia <- distancia + solucion$plano_termino_b[[1]]
+      if (distancia < 0) {
+        mc_neg <- mc_neg + 1
+        solucion$objetivo[[2]] <- solucion$objetivo[[2]] + abs(distancia)
+      }
     } else {
-      solucion$mc_neg <- solucion$mc_neg + 1
+      distancia <- distancia + solucion$plano_termino_b[[2]]
+      if (distancia > 0) {
+        mc_pos <- mc_pos + 1
+        solucion$objetivo[[2]] <- solucion$objetivo[[2]] + abs(distancia)
+      }
     }
   }
 
-  solucion$obj_epsilon <- abs(solucion$mc_pos - solucion$mc_neg) / nrow(solucion$data)
+  # Opcionalmente, podría almacenar los conteos de clasificación incorrecta si fuera necesario
+  solucion$mc_pos <- mc_pos
+  solucion$mc_neg <- mc_neg
 
-  return(solucion)  # Devolver solucion con obj_epsilon actualizado
-}
-
-#' @title Method to evaluate the solution
-#'
-#' @description
-#'   Method to evaluate the solution
-#'
-#' @param solucion Solucion class object
-#'
-#' @return Solucion class object with the evaluation performed
-#' @export
-evaluar_solucion <- function(solucion) {
-  if (sum(solucion$plano_coord) == 0) {
-    print("The sum of the plane coordinates is 0. The solution is not valid.")
-    return(0) # If the sum of the plane coordinates is 0, the solution is not valid
-  } else {
-    print("Plane constructed successfully.")
-    solucion <- construir_planos(solucion)  # Update solution with plano_termino_b
-
-    print("Distance objective calculated.")
-    solucion <- calcular_objetivo_distancia(solucion)  # Update solution with obj_distancia
-
-    print("Epsilon objective calculated.")
-    solucion <- calcular_objetivo_epsilon(solucion)  # Update solution with obj_epsilon
-
-    # calcular_objetivo_costes(solucion)
-    # calcular_puntos_bien_clasif(solucion)
-    return(solucion)
-  }
+  return(solucion)
 }
 
 
-# # Método para calcular los puntos bien clasificados
-# calcular_puntos_bien_clasif <- function(solucion) {
-#   eval <- 0
-#   k <- solucion$vectors[1]  # Usamos el primer índice
-#
-#   puntos_mal_clasif <- c(0, 0)
-#
-#   # Evaluamos el punto en primera posición (tipo 0 o tipo -)
-#   for (j in 1:solucion$num_features) {
-#     eval <- eval + (solucion$plano_coord[j] * solucion$data_sol[k, solucion$features[j]])
-#   }
-#
-#   if (eval > -solucion$plano_termino_b[2]) {
-#     solucion$signo_intermedio <- c(1, 0)
-#   } else {
-#     solucion$signo_intermedio <- c(0, 1)
-#   }
-#
-#   # Evaluamos los puntos de cada tipo
-#   for (m in 1:length(solucion$obj_mal_clasificados)) {
-#     for (i in 1:solucion$obj_mal_clasificados[[m]]) {
-#       resul_eval <- evaluar_punto_plano_intermedio(solucion$num, solucion$data_indices[[m]][i])
-#
-#       if (resul_eval != solucion$signo_intermedio[m]) {  # Usando el signo_intermedio de la solución
-#         solucion$obj_mal_clasificados[[m]] <- solucion$obj_mal_clasificados[[m]] + 1  # Actualizando el conteo de puntos mal clasificados
-#       }
-#     }
-#   }
-# }
-#
-# # Método para calcular el objetivo de costes
+
 # calcular_objetivo_costes <- function(solucion) {
 #   solucion$obj_coste <- 0
 #   for (feature in solucion$features) {
 #     solucion$obj_coste <- solucion$obj_coste + solucion$costes[feature]
 #   }
+#   return(solucion)
 # }
 
 
 
+#' @title Evaluate Solution
+#'
+#' @description
+#'   This function evaluates a solution by calculating its objectives.
+#'
+#' @param solucion Solucion class object to be evaluated
+#'
+#' @return Solucion class object with updated evaluation status and objectives
+evaluar_solucion <- function(solucion) {
+  # Verifica si la suma de plano_coord es cero
+  if (sum(solucion$plano_coord) == 0) {
+    cat("No se puede evaluar la solucion, no hay coordenadas.\n")
+    solucion$evaluacion_exitosa <- FALSE
+    return(solucion)
+  } else {
+    # Procedimientos para evaluar la solución si hay coordenadas válidas
+    solucion <- construir_planos(solucion)
+    solucion <- calcular_objetivo_distancia(solucion)
+    solucion <- calcular_objetivo_epsilon(solucion)
+    # solucion <- calcular_objetivo_costes(solucion) si es necesario
 
-# #Función para calcular la distancia de un punto dado al plano intermedio de la solución. Devuelve el resultado.
-# calcular_distancia_plano_intermedio <- function(num_sol, indice) {
-#   denominador <- 0
-#   distancia <- 0
-#
-#   for (j in 1:NUM_FEATURES) {
-#     distancia <- distancia + poblacion$solucion[[num_sol]]$plano_coord[j] * datos$punto[[indice]]$coord[[poblacion$solucion[[num_sol]]$features[j]]]
-#     denominador <- denominador + poblacion$solucion[[num_sol]]$plano_coord[j]^2
-#   }
-#
-#   denominador <- sqrt(denominador)
-#
-#   distancia <- distancia + poblacion$solucion[[num_sol]]$plano_termino[[NUM_TIPOS]]
-#
-#   if (distancia < 0) {
-#     distancia <- -distancia
-#   }
-#
-#   distancia <- distancia / denominador
-#
-#   return(distancia)
-# }
-#
-# evaluar_punto_plano_intermedio <- function(num_sol, indice) {
-#   # Esta función evalúa el punto cuyo indice se pasa como argumento en el plano intermedio,
-#   # devolviendo un 0 si es menor que el termino independiente de éste,
-#   # un 1 si es mayor y un 2 si es igual, es decir, está en el plano intermedio.
-#   # LOS PUNTOS QUE CAEN EN EL PLANO INTERMEDIO SE CONSIDERAN MAL CLASIFICADOS
-#
-#   eval <- 0
-#
-#   for (j in 1:NUM_FEATURES) {
-#     eval <- eval + (poblacion$solucion[[num_sol]]$plano_coord[j] * datos$punto[[indice]]$coord[[poblacion$solucion[[num_sol]]$features[j]]])
-#   }
-#
-#   if (eval > -poblacion$solucion[[num_sol]]$plano_termino[[NUM_TIPOS]]) {
-#     return(1)
-#   } else if (eval < -poblacion$solucion[[num_sol]]$plano_termino[[NUM_TIPOS]]) {
-#     return(0)
-#   } else {
-#     return(2)
-#   }
-# }
-#
-# # Esta función realiza el cruce de dos soluciones padres y genera dos soluciones hijos.
-# # Las dos mejores soluciones de los cuatro generados se conservan.
-# cruzar_soluciones <- function(num_sol1, num_sol2, hijo) {
-#   dominador1 <- domina(hijo, hijo + 1)
-#   posicion1 <- hijo
-#   if (dominador1 == 1) {
-#     posicion1 <- hijo + 1
-#   } else if (dominador1 == 0) {
-#     random <- runif(1)
-#     if (random < 0.5) {
-#       posicion1 <- hijo + 1
-#     }
-#   }
-#
-#   dominador2 <- domina(hijo + 2, hijo + 3)
-#   posicion2 <- hijo + 2
-#   if (dominador2 == 2) {
-#     posicion2 <- hijo + 3
-#   } else if (dominador2 == 0) {
-#     random <- runif(1)
-#     if (random < 0.5) {
-#       posicion2 <- hijo + 3
-#     }
-#   }
-#
-#   # Se conservan las dos mejores soluciones de las cuatro generadas
-#   for (j in 1:NUM_FEATURES) {
-#     poblacion$solucion[posicion1]$features[j] <- poblacion$solucion[posicion2]$features[j]
-#     poblacion$solucion[posicion1]$plano_coord[j] <- poblacion$solucion[posicion2]$plano_coord[j]
-#   }
-#   poblacion$solucion[posicion1]$indices[1] <- poblacion$solucion[posicion2]$indices[1]
-#   poblacion$solucion[posicion1]$indices[2] <- poblacion$solucion[posicion2]$indices[2]
-# }
-#
-# # Esta función realiza un torneo entre dos soluciones padres y devuelve el índice del mejor padre.
-# # Se eligen dos padres aleatorios y se comparan usando la función compara_padres.
-# torneo_elegir_padre <- function() {
-#   padre1 <- sample(1:TAM_POBLACION, 1)
-#   padre2 <- sample(1:TAM_POBLACION, 1)
-#   while (padre1 == padre2) {
-#     padre2 <- sample(1:TAM_POBLACION, 1)
-#   }
-#   return(compara_padres(padre1, padre2))
-# }
-#
-# # Esta función muta una solución.
-# mutar_solucion <- function(num_sol) {
-#   # Mutación de índices
-#   random <- runif(1)
-#   if (random < P_MUT_IND) {
-#     indice <- sample(1:datos$tot_tipo[1], 1)
-#     poblacion$solucion[[num_sol]]$indices[1] <- datos$indices[[1]][indice]
-#   }
-#   if (random < P_MUT_IND) {
-#     indice <- sample(1:datos$tot_tipo[2], 1)
-#     poblacion$solucion[[num_sol]]$indices[2] <- datos$indices[[2]][indice]
-#   }
-#
-#   if (NUM_DIM > NUM_FEATURES) {
-#     features_solucion <- rep(0, NUM_DIM)
-#     for (i in 1:NUM_FEATURES) {
-#       features_solucion[poblacion$solucion[[num_sol]]$features[i]] <- 1
-#     }
-#     volver_feat <- 0
-#     if (2 * NUM_FEATURES >= NUM_DIM) volver_feat <- 1
-#     for (i in 1:NUM_FEATURES) {
-#       random <- runif(1)
-#       if (random <= P_MUT_FEAT) {
-#         indice <- sample(1:NUM_DIM, 1)
-#         while (features_solucion[indice] == 1) {
-#           indice <- indice %% NUM_DIM + 1
-#         }
-#         if (volver_feat == 1) {
-#           features_solucion[poblacion$solucion[[num_sol]]$features[i]] <- 0
-#         }
-#         poblacion$solucion[[num_sol]]$features[i] <- indice
-#         poblacion$solucion[[num_sol]]$plano_coord[i] <- runif(1)
-#         features_solucion[indice] <- 1
-#       }
-#     }
-#   }
-#
-#   for (i in 1:NUM_FEATURES) {
-#     random <- runif(1)
-#     if (random <= P_MUT_COORD) {
-#       if (TIPO_MUT_COORD == 0) {
-#         porcentaje_variar <- sample(5:25, 1)
-#         random <- runif(1)
-#         if (random < 0.5) {
-#           poblacion$solucion[[num_sol]]$plano_coord[i] <- poblacion$solucion[[num_sol]]$plano_coord[i] * (1 + porcentaje_variar / 100)
-#           if (poblacion$solucion[[num_sol]]$plano_coord[i] > 1) {
-#             poblacion$solucion[[num_sol]]$plano_coord <- poblacion$solucion[[num_sol]]$plano_coord / 10
-#           }
-#         } else {
-#           poblacion$solucion[[num_sol]]$plano_coord[i] <- poblacion$solucion[[num_sol]]$plano_coord[i] * (1 - porcentaje_variar / 100)
-#           if (poblacion$solucion[[num_sol]]$plano_coord[i] < -1) {
-#             poblacion$solucion[[num_sol]]$plano_coord <- poblacion$solucion[[num_sol]]$plano_coord / 10
-#           }
-#         }
-#       } else {
-#         poblacion$solucion[[num_sol]]$plano_coord[i] <- runif(1, -1, 1)
-#       }
-#     }
-#   }
-# }
-#
-# #QUICKSORT
-# # Función para intercambiar dos elementos de un vector
-# intercambiar <- function(arreglo, a, b) {
-#   temporal <- arreglo[a]
-#   arreglo[a] <- arreglo[b]
-#   arreglo[b] <- temporal
-# }
-#
-# # Función para realizar la partición en Quicksort
-# particion <- function(arreglo, izquierda, derecha, objetivo) {
-#   pivote <- switch(
-#     objetivo,
-#     "0" = poblacion$solucion[[arreglo[izquierda]]]$obj[1],
-#     "1" = poblacion$solucion[[arreglo[izquierda]]]$obj[2],
-#     "2" = poblacion$solucion[[arreglo[izquierda]]]$i_distance,
-#     "3" = arreglo[izquierda]
-#   )
-#
-#   while (TRUE) {
-#     while (switch(
-#       objetivo,
-#       "0" = poblacion$solucion[[arreglo[izquierda]]]$obj[1] < pivote,
-#       "1" = poblacion$solucion[[arreglo[izquierda]]]$obj[2] < pivote,
-#       "2" = poblacion$solucion[[arreglo[izquierda]]]$i_distance < pivote,
-#       "3" = arreglo[izquierda] < pivote
-#     )) {
-#       izquierda <- izquierda + 1
-#     }
-#     while (switch(
-#       objetivo,
-#       "0" = poblacion$solucion[[arreglo[derecha]]]$obj[1] > pivote,
-#       "1" = poblacion$solucion[[arreglo[derecha]]]$obj[2] > pivote,
-#       "2" = poblacion$solucion[[arreglo[derecha]]]$i_distance > pivote,
-#       "3" = arreglo[derecha] > pivote
-#     )) {
-#       derecha <- derecha - 1
-#     }
-#     if (izquierda >= derecha) {
-#       return(derecha)
-#     } else {
-#       intercambiar(arreglo, izquierda, derecha)
-#       izquierda <- izquierda + 1
-#       derecha <- derecha - 1
-#     }
-#   }
-# }
-#
-# # Función Quicksort
-# quicksort <- function(arreglo, izquierda, derecha, objetivo) {
-#   if (izquierda < derecha) {
-#     indiceParticion <- particion(arreglo, izquierda, derecha, objetivo)
-#     quicksort(arreglo, izquierda, indiceParticion, objetivo)
-#     quicksort(arreglo, indiceParticion + 1, derecha, objetivo)
-#   }
-# }
+    # Asumir que las evaluaciones fueron exitosas si se alcanza este punto
+    solucion$evaluacion_exitosa <- TRUE
+    return(solucion)
+  }
+}
 
 
 
+#' @title Method to Determine Dominance
+#'
+#' @description
+#'   This function determines if one solution dominates another based on objectives.
+#'
+#' @param solucion1 First solution object
+#' @param solucion2 Second solution object
+#'
+#' @return TRUE if solucion1 dominates solucion2, otherwise FALSE
+dominar <- function(solucion1, solucion2) {
+  # Comprobar si alguno de los objetivos es NA o no numérico antes de comparar
+  if (is.na(solucion1$objetivo[[1]]) || !is.numeric(solucion1$objetivo[[1]]) ||
+      is.na(solucion2$objetivo[[1]]) || !is.numeric(solucion2$objetivo[[1]]) ||
+      is.na(solucion1$objetivo[[2]]) || !is.numeric(solucion1$objetivo[[2]]) ||
+      is.na(solucion2$objetivo[[2]]) || !is.numeric(solucion2$objetivo[[2]])) {
+    # Retorna FALSE o maneja el caso de forma que se ajuste a tu lógica de aplicación
+    return(FALSE)
+  }
+
+  # Procede con la comparación si todos los valores son adecuados
+  return(solucion1$objetivo[[1]] >= solucion2$objetivo[[1]] &&
+           solucion1$objetivo[[2]] <= solucion2$objetivo[[2]])
+}
+
+
+
+#' @title Method to Determine Dominance with Three States
+#'
+#' @description
+#'   This function determines the dominance state between two solutions.
+#'
+#' @param solucion1 First solution object
+#' @param solucion2 Second solution object
+#'
+#' @return 0 if the solutions are equal, 1 if solucion1 dominates solucion2, 2 if solucion2 dominates solucion1
+dominar2 <- function(solucion1, solucion2) {
+  # Comprobar si los objetivos son iguales
+  if (solucion1$objetivo[[1]] == solucion2$objetivo[[1]] && solucion1$objetivo[[2]] == solucion2$objetivo[[2]]) {
+    return(0)  # No hay dominancia, son iguales
+  } else if (solucion1$objetivo[[1]] >= solucion2$objetivo[[1]] && solucion1$objetivo[[2]] <= solucion2$objetivo[[2]]) {
+    return(1)  # solucion1 domina a solucion2
+  } else {
+    return(2)  # solucion2 domina a solucion1
+  }
+}
+
+
+
+#' @title Method to Compare Solutions
+#'
+#' @description
+#'   This function compares two solutions based on their front and dominance information.
+#'
+#' @param solucion1 First solution object
+#' @param solucion2 Second solution object
+#'
+#' @return The solution object with better dominance or front
+comparar_soluciones <- function(solucion1, solucion2) {
+  if (solucion1$front == solucion2$front) {
+    if (length(solucion1$lista_dominado_por) == length(solucion2$lista_dominado_por)) {
+      moneda <- sample(0:1, 1)
+      if (moneda == 0) {
+        return(solucion1)
+      } else {
+        return(solucion2)
+      }
+    } else if (length(solucion1$lista_dominado_por) < length(solucion2$lista_dominado_por)) {
+      return(solucion1)
+    } else {
+      return(solucion2)
+    }
+  } else {
+    if (solucion1$front > solucion2$front) {
+      return(solucion2)
+    } else {
+      return(solucion1)
+    }
+  }
+}
+
+
+
+#' @title Method to Mutate Vectors
+#'
+#' @description
+#'   This function mutates the vectors in the solution by assigning new class vectors.
+#'
+#' @param solucion Solucion class object to mutate
+#'
+#' @return Solucion class object with updated vectors
+mutar_vectores <- function(solucion) {
+  # Obtener las clases únicas y ordenarlas
+  clases <- sort(unique(solucion$data[[solucion$output]]))
+
+  # Iterar sobre cada clase
+  for (i in seq_along(clases)) {
+    # Llamar a obtener_vector_clase para la clase actual
+    vector <- obtener_vector_clase(solucion, clases[i])
+
+    # Verificar que el nuevo vector sea diferente al actual y si no, buscar otro
+    while (identical(vector, solucion$vectors[[i]])) {
+      vector <- obtener_vector_clase(solucion, clases[i])
+    }
+
+    # Actualizar el vector en la solución
+    solucion$vectors[[i]] <- vector
+  }
+
+  return(solucion)
+}

@@ -2,16 +2,16 @@
 % Please edit documentation in R/solucion.R
 \name{calcular_objetivo_epsilon}
 \alias{calcular_objetivo_epsilon}
-\title{Method to calculate the epsilon objective}
+\title{Method to Calculate the Epsilon Objective}
 \usage{
 calcular_objetivo_epsilon(solucion)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object containing data and features for classification}
 }
 \value{
 Solucion class object with the epsilon objective calculated
 }
 \description{
-Method to calculate the epsilon objective
+This method calculates the epsilon objective by evaluating misclassified points.
 }

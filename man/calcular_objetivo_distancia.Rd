@@ -2,16 +2,16 @@
 % Please edit documentation in R/solucion.R
 \name{calcular_objetivo_distancia}
 \alias{calcular_objetivo_distancia}
-\title{Method to calculate the distance objective}
+\title{Method to Calculate the Distance Objective}
 \usage{
 calcular_objetivo_distancia(solucion)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object containing the plane equation}
 }
 \value{
 Solucion class object with the distance objective calculated
 }
 \description{
-Method to calculate the distance objective
+This method calculates the distance objective based on the plane equation.
 }

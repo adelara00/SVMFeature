@@ -2,16 +2,16 @@
 % Please edit documentation in R/solucion.R
 \name{evaluar_solucion}
 \alias{evaluar_solucion}
-\title{Method to evaluate the solution}
+\title{Evaluate Solution}
 \usage{
 evaluar_solucion(solucion)
 }
 \arguments{
-\item{solucion}{Solucion class object}
+\item{solucion}{Solucion class object to be evaluated}
 }
 \value{
-Solucion class object with the evaluation performed
+Solucion class object with updated evaluation status and objectives
 }
 \description{
-Method to evaluate the solution
+This function evaluates a solution by calculating its objectives.
 }

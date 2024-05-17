@@ -2,12 +2,30 @@
 % Please edit documentation in R/poblacion.R
 \name{Poblacion}
 \alias{Poblacion}
-\title{Class Population}
+\title{Definition of the Poblacion Class}
 \usage{
-Poblacion(data, costes, tam_pob, inputs, output, num_features, clones = 0)
+Poblacion(
+  data,
+  costes,
+  tam_pob,
+  inputs,
+  output,
+  num_features,
+  num_obj = 2,
+  clones = 0,
+  p_mutacion = 0.7,
+  p_mut_ind = 0.4,
+  p_mut_fea = 0.4,
+  p_mut_coord = 0.2,
+  mut_coord = 0
+)
 }
 \arguments{
 \item{data}{Dataset}
+
+\item{costes}{Associated costs}
+
+\item{tam_pob}{Population size}
 
 \item{inputs}{Input variables}
 
@@ -15,15 +33,23 @@ Poblacion(data, costes, tam_pob, inputs, output, num_features, clones = 0)
 
 \item{num_features}{Number of features}
 
+\item{num_obj}{Number of objective (default: 2)}
+
 \item{clones}{Number of clones (default: 0)}
 
-\item{costs}{Associated costs}
+\item{p_mutacion}{Mutation probability (default: 0.7)}
 
-\item{population_size}{Population size}
+\item{p_mut_ind}{Individual mutation probability (default: 0.4)}
+
+\item{p_mut_fea}{Feature mutation probability (default: 0.4)}
+
+\item{p_mut_coord}{Mutation coordinates (default: 0.2)}
+
+\item{mut_coord}{Mutation coordinates (default: 0)}
 }
 \value{
-Population class object
+Object of the `Poblacion` class
 }
 \description{
-This function defines the Population class with its attributes and methods.
+This function defines the `Poblacion` class with its attributes and methods.
 }
